@@ -1,4 +1,4 @@
-# teste-delphi
+# Teste em Delphi
 Teste para Envio de email com anexo
 
 
@@ -11,5 +11,5 @@ e enviá-los por email em arquivo XML.
  - Validação de CPF
  - Gera XML
  - Envia email
- - Busca CEP
+ - Busca endereço, consultando CEP
  
