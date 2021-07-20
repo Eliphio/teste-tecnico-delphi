@@ -1,0 +1,103 @@
+unit uEndereco;
+
+interface
+
+uses System.SysUtils, System.JSON, REST.Client;
+
+type
+  TEndereco = class
+
+  protected
+    //
+  private
+    FCep        : string;
+    FLogradouro : string;
+    FNumero     : string;
+    FComplemento: string;
+    FBairro     : string;
+    FCidade     : string;
+    FEstado     : string;
+    FPais       : string;
+
+    function getUrlViaCep: string;
+
+
+  public
+    property Cep        : string read FCep          write FCep;
+    property Logradouro : string read FLogradouro   write FLogradouro;
+    property Numero     : string read FNumero       write FNumero;
+    property Complemento: string read FComplemento  write FComplemento;
+    property Bairro     : string read FBairro       write FBairro;
+    property Cidade     : string read FCidade       write FCidade;
+    property Estado     : string read FEstado       write FEstado;
+    property Pais       : string read FPais         write FPais;
+
+    constructor create;
+    destructor destroy;
+    procedure buscaCep;
+  end;
+
+implementation
+
+{ TEndereco }
+
+procedure TEndereco.buscaCep;
+var
+  RESTResposta  : TRESTResponse;
+  RESTRequisicao: TRESTRequest;
+  RESTCliente   : TRESTClient;
+  ResJSON       : TJSONObject;
+begin
+
+  if (FCep = emptyStr) then
+  begin
+    exit;
+  end;
+
+  RESTRequisicao := TRESTRequest.Create(nil);
+  RESTCliente := TRESTClient.Create(nil);
+  RESTResposta := TRESTResponse.Create(nil);
+
+  RESTRequisicao.Client := RESTCliente;
+  RESTRequisicao.Response := RESTResposta;
+  RESTCliente.BaseURL := getUrlViaCep;
+  RESTRequisicao.Execute;
+
+  ResJSON := RESTResposta.JSONValue as TJSONObject;
+  if (Assigned(ResJSON)) and (ResJSON.Count >= 4) then
+  begin
+    FLogradouro := ResJSON.Values['logradouro'].Value;
+    FBairro     := ResJSON.Values['bairro'].Value;
+    FCidade     := ResJSON.Values['localidade'].Value;
+    FEstado     := ResJSON.Values['uf'].Value;
+  end;
+
+  FreeAndNil(RESTRequisicao);
+  FreeAndNil(RESTCliente);
+  FreeAndNil(RESTResposta);
+
+end;
+
+constructor TEndereco.create;
+begin
+  FLogradouro := '';
+  FNumero     := '';
+  FComplemento:= '';
+  FBairro     := '';
+  FCidade     := '';
+  FEstado     := '';
+  FPais       := '';
+
+end;
+
+destructor TEndereco.destroy;
+begin
+  FreeAndNil(self);
+end;
+
+function TEndereco.getUrlViaCep: string;
+begin
+  result := 'https://viacep.com.br/ws/' + FCep + '/json';
+end;
+
+end.

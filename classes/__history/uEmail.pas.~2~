@@ -1,0 +1,87 @@
+unit uEmail;
+
+interface
+
+uses System.SysUtils, System.JSON, REST.Client,
+  IdExplicitTLSClientServerBase,
+  idsslopenssl, idmessage, idtext, idsmtp, vcl.Forms;
+
+type
+  TEmail = class
+
+  protected
+    idMsg                : TIdMessage;
+    IdText               : TIdText;
+    idSMTP               : TIdSMTP;
+    IdSSLIOHandlerSocket : TIdSSLIOHandlerSocketOpenSSL;
+
+  private
+    FDestinatario: string;
+    FUsuario: string;
+    FPort: string;
+    FHost: string;
+    FSenha: string;
+    FCorpo: string;
+    FASsunto: string;
+    FRemetente: string;
+
+  public
+    property Destinatario: string read FDestinatario write FDestinatario;
+    property Host: string read FHost write FHost;
+    property Port: string read FPort write FPort;
+    property Usuario: string read FUsuario write FUsuario;
+    property Senha: string read FSenha write FSenha;
+    property Assunto: string read FASsunto write FAssunto;
+    property Corpo: string read FCorpo write FCorpo;
+    property Remetente: string read FRemetente write FRemetente;
+    constructor create(App: TForm);
+    destructor destroy;
+  end;
+
+implementation
+
+{ TEmail }
+
+constructor TEmail.create(App: TForm);
+begin
+  IdSSLIOHandlerSocket                   := TIdSSLIOHandlerSocketOpenSSL.Create(App);
+  IdSSLIOHandlerSocket.SSLOptions.Method := sslvTLSv1_1;
+  IdSSLIOHandlerSocket.SSLOptions.Mode  := sslmClient;
+
+  idMsg                            := TIdMessage.Create(App);
+  idMsg.CharSet                    := 'utf-8';
+  idMsg.Encoding                   := meMIME;
+  idMsg.From.Name                  := FAssunto;
+  idMsg.From.Address               := FRemetente;
+  idMsg.Priority                   := mpNormal;
+  idMsg.Subject                    := FAssunto;
+
+  idMsg.Recipients.Add;
+  idMsg.Recipients.EMailAddresses := FDestinatario;
+  idMsg.BccList.EMailAddresses    := FRemetente;
+
+  idText := TIdText.Create(idMsg.MessageParts);
+  idText.Body.Add(FCorpo);
+  idText.ContentType := 'text/html; text/plain; charset=iso-8859-1';
+
+  IdSMTP                           := TIdSMTP.Create(App);
+  IdSMTP.IOHandler                 := IdSSLIOHandlerSocket;
+  IdSMTP.UseTLS                    := utUseRequireTLS;
+  IdSMTP.AuthType                  := satDefault;
+  IdSMTP.Host                      := FHost;
+  IdSMTP.AuthType                  := satDefault;
+  IdSMTP.Port                      := iPort;
+  IdSMTP.Username                  := sUserName;
+  IdSMTP.Password                  := sPassword;
+
+  //Conecta e Autentica
+  IdSMTP.Connect;
+  IdSMTP.Authenticate;
+end;
+
+destructor TEmail.destroy;
+begin
+  FreeAndNil(Self);
+end;
+
+end.

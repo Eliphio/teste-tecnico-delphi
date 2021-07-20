@@ -1,0 +1,100 @@
+unit uEndereco;
+
+interface
+
+uses System.JSON, REST.Client;
+
+type
+  TEndereco = class
+
+  private
+    FLogradouro: string;
+    FNumero: string;
+    FComplemento: string;
+    FBairro: string;
+    FCidade: string;
+    FEstado: string;
+    FPais: string;
+
+  public
+    property Logradouro : string read FLogradouro   write FLogradouro;
+    property Numero     : string read FNumero       write FNumero;
+    property Complemento: string read FComplemento  write FComplemento;
+    property Bairro     : string read FBairro       write FBairro;
+    property Cidade     : string read FCidade       write FCidade;
+    property Estado     : string read FEstado       write FEstado;
+    property Pais       : string read FPais         write FPais;
+
+    constructor create;
+    destructor destroy;
+    procedure buscaCep;
+  end;
+
+implementation
+
+
+{ TEndereco }
+
+procedure TEndereco.buscaCep;
+var
+  Retorno: TJSONObject;
+  RESTClient1: TRESTClient;
+  RESTRequest1: TRESTRequest;
+  RESTResponse1: TRESTResponse;
+  Endereco: TStringList;
+begin
+  RESTClient1 := TRESTClient.Create(nil);
+  RESTRequest1 := TRESTRequest.Create(nil);
+  RESTResponse1 := TRESTResponse.Create(nil);
+  RESTRequest1.Client := RESTClient1;
+  RESTRequest1.Response := RESTResponse1;
+  RESTClient1.BaseURL := 'https://viacep.com.br/ws/' + UmCEP + '/json';
+  RESTRequest1.Execute;
+  Retorno := RESTResponse1.JSONValue as TJSONObject;
+  try
+    if Assigned(Retorno) then
+    begin
+      Endereco := TStringList.Create;
+      Endereco.Clear;
+      if Retorno.Count >= 5 then
+      begin
+        try
+          if Assigned(Retorno) then
+          begin
+            Endereco.Add(Retorno.Values['logradouro'].Value);
+            Endereco.Add(Retorno.Values['bairro'].Value);
+            Endereco.Add(Retorno.Values['uf'].Value);
+            Endereco.Add(Retorno.Values['localidade'].Value);
+            Endereco.Add(Retorno.Values['complemento'].Value);
+
+            frmCadCliente.mmRetorno.text := Endereco.Text;
+          end;
+        finally
+          FreeAndNil(Retorno);
+        end;
+      end;
+    end;
+  except
+    FreeAndNil(Retorno);
+  end;
+  Result := Endereco;
+
+end;
+
+constructor TEndereco.create;
+begin
+  FLogradouro := '';
+  FNumero     := '';
+  FComplemento:= '';
+  FBairro     := '';
+  FCidade     := '';
+  FEstado     := '';
+  FPais       := '';
+end;
+
+destructor TEndereco.destroy;
+begin
+  destroy;
+end;
+
+end.

@@ -1,0 +1,240 @@
+unit uCliente;
+
+interface
+
+uses System.SysUtils, System.JSON, REST.Client,
+  Xml.XMLDoc, Xml.XMLIntf, System.Classes;
+
+type
+  TCliente = class
+
+  protected
+    {var protegidos}
+  private
+    FCep        : string;
+    FLogradouro : string;
+    FNumero     : string;
+    FComplemento: string;
+    FBairro     : string;
+    FCidade     : string;
+    FEstado     : string;
+    FPais       : string;
+    FEmail: string;
+    FCPF: string;
+    FIdentidade: string;
+    FNome: string;
+    FTelefone: string;
+
+    function getUrlViaCep: string;
+    function getPasta: string;
+
+
+  public
+    property Cep        : string read FCep          write FCep;
+    property Logradouro : string read FLogradouro   write FLogradouro;
+    property Numero     : string read FNumero       write FNumero;
+    property Complemento: string read FComplemento  write FComplemento;
+    property Bairro     : string read FBairro       write FBairro;
+    property Cidade     : string read FCidade       write FCidade;
+    property Estado     : string read FEstado       write FEstado;
+    property Pais       : string read FPais         write FPais;
+    property Nome       : string read FNome         write FNome;
+    property Identidade : string read FIdentidade   write FIdentidade;
+    property CPF        : string read FCPF          write FCPF;
+    property Telefone   : string read FTelefone     write FTelefone;
+    property Email      : string read FEmail        write FEmail;
+    property Pasta      : string read getPasta;
+
+    constructor create;
+    destructor destroy;
+    procedure buscaCep;
+    function geraXML(Sender: TComponent): string;
+    function validaCPF(numeroCPF: string): boolean;
+  end;
+
+implementation
+
+{ TCliente }
+
+function TCliente.validaCPF(numeroCPF: string): boolean;
+
+var n1,n2,n3,n4,n5,n6,n7,n8,n9: integer;
+
+   	d1,d2: integer;
+
+   	digitado, calculado: string;
+
+begin
+
+   n1:=StrToInt(numeroCPF[1]);
+
+   n2:=StrToInt(numeroCPF[2]);
+
+   n3:=StrToInt(numeroCPF[3]);
+
+   n4:=StrToInt(numeroCPF[5]);
+
+   n5:=StrToInt(numeroCPF[6]);
+
+   n6:=StrToInt(numeroCPF[7]);
+
+   n7:=StrToInt(numeroCPF[9]);
+
+   n8:=StrToInt(numeroCPF[10]);
+
+   n9:=StrToInt(numeroCPF[11]);
+
+                 	d1:=n9*2+n8*3+n7*4+n6*5+n5*6+n4*7+n3*8+n2*9+n1*10;
+
+  d1:=11-(d1 mod 11);
+
+   if d1>=10 then d1:=0;
+
+    	d2:=d1*2+n9*3+n8*4+n7*5+n6*6+n5*7+n4*8+n3*9+n2*10+n1*11;
+
+	d2:=11-(d2 mod 11);
+
+	if d2>=10 then
+
+   	d2:=0;
+
+	calculado:=inttostr(d1)+inttostr(d2);
+
+   digitado:=numeroCPF[13]+numeroCPF[14];
+
+   if calculado=digitado then
+
+   	Cpf:=true
+
+   else
+
+   	Cpf:=false;
+
+end;
+
+procedure TCliente.buscaCep;
+var
+  RESTResposta  : TRESTResponse;
+  RESTRequisicao: TRESTRequest;
+  RESTCliente   : TRESTClient;
+  ResJSON       : TJSONObject;
+begin
+
+  if (FCep = emptyStr) then
+  begin
+    exit;
+  end;
+
+  RESTRequisicao := TRESTRequest.Create(nil);
+  RESTCliente := TRESTClient.Create(nil);
+  RESTResposta := TRESTResponse.Create(nil);
+
+  RESTRequisicao.Client := RESTCliente;
+  RESTRequisicao.Response := RESTResposta;
+  RESTCliente.BaseURL := getUrlViaCep;
+  RESTRequisicao.Execute;
+
+  ResJSON := RESTResposta.JSONValue as TJSONObject;
+  if (Assigned(ResJSON)) and (ResJSON.Count >= 4) then
+  begin
+    FLogradouro := ResJSON.Values['logradouro'].Value;
+    FBairro     := ResJSON.Values['bairro'].Value;
+    FCidade     := ResJSON.Values['localidade'].Value;
+    FEstado     := ResJSON.Values['uf'].Value;
+  end;
+
+  FreeAndNil(RESTRequisicao);
+  FreeAndNil(RESTCliente);
+  FreeAndNil(RESTResposta);
+
+end;
+
+constructor TCliente.create;
+begin
+  FLogradouro := '';
+  FNumero     := '';
+  FComplemento:= '';
+  FBairro     := '';
+  FCidade     := '';
+  FEstado     := '';
+  FPais       := '';
+
+end;
+
+destructor TCliente.destroy;
+begin
+  FreeAndNil(self);
+end;
+
+function TCliente.geraXML(Sender: TComponent): string;
+var
+  Cadastro,
+  DadosCliente,
+  Endereco    : IXMLNode;
+  DocumentoXML: TXMLDocument;
+  XML         : string;
+begin
+  DocumentoXML := TXMLDocument.Create(Sender);
+
+  try
+    with DocumentoXML do
+    begin
+      Active := True;
+      Version  := '1.0';
+      Encoding := 'UTF-16';
+    end;
+
+    Cadastro := DocumentoXML.AddChild('DadosCliente');
+
+    DadosCliente := DocumentoXML.CreateNode('Cliente');
+    with DadosCliente do
+    begin
+      AddChild('Nome').Text       := FNome;
+      AddChild('Identidade').Text := FIdentidade;
+      AddChild('CPF').Text        := FCPF;
+      AddChild('Telefone').Text   := FTelefone;
+      AddChild('Email').Text      := FEmail;
+    end;
+
+    Endereco := DadosCliente.AddChild('Endereco');
+
+    with Endereco do
+    begin
+      AddChild('Cep').Text         := FCep;
+      AddChild('Logradouro').Text  := FLogradouro;
+      AddChild('Numero').Text      := FNumero;
+      AddChild('Complemento').Text := FComplemento;
+      AddChild('Bairro').Text      := FBairro;
+      AddChild('Cidade').Text      := FCidade;
+      AddChild('Estado').Text      := FEstado;
+      AddChild('Pais').Text        := FPais;
+    end;
+
+    Cadastro.ChildNodes.Add(DadosCliente);
+
+    XML := StringReplace(DocumentoXML.XML.Text,'UTF-16','UTF-8',[rfReplaceAll]);
+    XML := StringReplace(StringReplace(XML, #10, '', [rfReplaceAll]), #13, '', [rfReplaceAll]);
+
+    if not DirectoryExists(pasta) then
+    begin
+      CreateDir(pasta);
+    end;
+
+    DocumentoXML.SaveToFile(pasta+trim(FNome)+'.xml');
+  finally
+    freeandnil(DocumentoXML);
+  end;
+end;
+
+function TCliente.getPasta: string;
+begin
+  result := ExtractFileDir(GetCurrentDir) + '/xml/';
+end;
+
+function TCliente.getUrlViaCep: string;
+begin
+  result := 'https://viacep.com.br/ws/' + FCep + '/json';
+end;
+
+
+end.
